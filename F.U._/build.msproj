@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Package" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<!-- Required Import to use MSBuild Community Tasks -->
+	<Import Project="$(MSBuildExtensionsPath)\\MSBuildCommunityTasks\\MSBuild.Community.Tasks.Targets"/>
+
+	<PropertyGroup>
+		<Major>1</Major>
+		<Minor>0</Minor>
+		<Build>0</Build>
+		<Revision>0</Revision>
+
+		<OutputDirectory>Packages</OutputDirectory>
+		<ConfigurationSource>..\Configuration</ConfigurationSource>
+
+		<Project1Path>LyndaWeb.sln</Project1Path>
+		<Project2Path>LyndaMobile\LyndaMobile.sln</Project2Path>
+
+		<PackageName>WebSite</PackageName>
+		<PackageSource>LyndaWebSite</PackageSource>
+		<PackageZip>$(PackageName)-$(Configuration)-$(Major).$(Minor).$(Build).$(Revision).zip</PackageZip>
+	</PropertyGroup>
+
+
+	<Target Name="Build">
+		<Message Text="Building: $(Project1Path)" />
+		<MSBuild Projects="$(Project1Path)" Properties="Configuration=Release" Targets="Rebuild" />
+
+		<Message Text="Building: $(Project2Path)" />
+		<MSBuild Projects="$(Project2Path)" Properties="Configuration=Release" Targets="Rebuild" />
+	</Target>
+	<Target Name="Package" DependsOnTargets="Build">
+		<Message Text="Packaging" />
+		<MSBuild Projects="$(MSBuildProjectFile)" Targets="PackageApp" Properties="PackageName=WebSite;PackageSource=LyndaWebSite;Major=$(Major);Minor=$(Minor);Build=$(Build);Revision=$(Revision);Configuration=$(Configuration)" />
+		<MSBuild Projects="$(MSBuildProjectFile)" Targets="PackageApp" Properties="PackageName=Admin;PackageSource=LyndaAdmin;Major=$(Major);Minor=$(Minor);Build=$(Build);Revision=$(Revision);Configuration=$(Configuration)" />
+		<MSBuild Projects="$(MSBuildProjectFile)" Targets="PackageApp" Properties="PackageName=Author;PackageSource=Lynda.Web.AuthorPortal.UI;Major=$(Major);Minor=$(Minor);Build=$(Build);Revision=$(Revision);Configuration=$(Configuration)" />
+		<MSBuild Projects="$(MSBuildProjectFile)" Targets="PackageApp" Properties="PackageName=Mobile;PackageSource=LyndaMobile\LyndaMobile;Major=$(Major);Minor=$(Minor);Build=$(Build);Revision=$(Revision);Configuration=$(Configuration)" />
+	</Target>
+
+
+	<Target Name="PackageApp">
+		<Message Text="Packaging: $(PackageName), $(Configuration), $(Major).$(Minor).$(Build).$(Revision)"/>
+
+		<!-- Configuration -->
+		<RemoveDir Directories="$(PackageSource)\__configuration" Condition="Exists('$(PackageSource)\__configuration')" />
+		<CreateItem Include="$(ConfigurationSource)\**\*.*" Exclude="$(ConfigurationSource)\**\.svn\**;$(ConfigurationSource)\**\*.svn-base">
+			<Output ItemName="ConfigurationFiles" TaskParameter="Include" />
+		</CreateItem>
+		<Copy SourceFiles="@(ConfigurationFiles)" DestinationFolder="$(PackageSource)\__configuration\%(RecursiveDir)" />
+
+		<!-- Package -->
+		<MakeDir Directories="$(OutputDirectory)" Condition="!Exists('$(OutputDirectory)')" />
+
+		<Delete Files="$(OutputDirectory)\$(PackageZip)" Condition="Exists('$(OutputDirectory)\$(PackageZip)')" />
+		<CreateItem Include="$(PackageSource)\**\*.*" Exclude="$(PackageSource)\**\*.pdb;$(PackageSource)\**\*.pidb;$(PackageSource)\Web.Config;$(PackageSource)\App_Data\APISettings.xml;$(PackageSource)\App_Data\log4net.xml">
+			<Output ItemName="ZipFiles" TaskParameter="Include" />
+		</CreateItem>
+		<Zip Files="@(ZipFiles)" ZipFileName="$(OutputDirectory)\$(PackageZip)" WorkingDirectory="$(PackageSource)" />
+
+		<!-- Clean-up: Configuration -->
+		<RemoveDir Directories="$(PackageSource)\__configuration" Condition="Exists('$(PackageSource)\__configuration')" />
+	</Target>
+</Project>
+
